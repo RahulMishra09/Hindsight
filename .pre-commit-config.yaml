@@ -37,18 +37,16 @@ repos:
         name: Ruff format
 
   # ---------------------------------------------------------------------------
-  # Mypy — strict type checking
+  # Mypy — strict type checking (runs via uv so it sees all project deps)
   # ---------------------------------------------------------------------------
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.15.0
+  - repo: local
     hooks:
       - id: mypy
         name: Mypy type check
-        args: ["--config-file=pyproject.toml"]
-        additional_dependencies: []
-        # Pass all Python source files (not just changed ones) for cross-module checking
+        language: system
+        entry: uv run mypy app ml
         pass_filenames: false
-        entry: mypy app ml
+        types: [python]
 
   # ---------------------------------------------------------------------------
   # Gitleaks — secret scanning
