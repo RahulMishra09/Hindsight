@@ -1,0 +1,60 @@
+default_language_version:
+  python: python3.12
+
+repos:
+  # ---------------------------------------------------------------------------
+  # Standard file hygiene
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: end-of-file-fixer
+        name: Fix end-of-file newlines
+      - id: trailing-whitespace
+        name: Trim trailing whitespace
+      - id: check-yaml
+        name: Validate YAML syntax
+      - id: check-toml
+        name: Validate TOML syntax
+      - id: check-merge-conflict
+        name: Check for merge conflict markers
+      - id: check-added-large-files
+        name: Prevent large file commits
+        args: ["--maxkb=1000"]
+      - id: detect-private-key
+        name: Detect private keys
+
+  # ---------------------------------------------------------------------------
+  # Ruff — linter + formatter (replaces flake8, isort, black)
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.10
+    hooks:
+      - id: ruff
+        name: Ruff lint
+        args: ["--fix", "--exit-non-zero-on-fix"]
+      - id: ruff-format
+        name: Ruff format
+
+  # ---------------------------------------------------------------------------
+  # Mypy — strict type checking
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.15.0
+    hooks:
+      - id: mypy
+        name: Mypy type check
+        args: ["--config-file=pyproject.toml"]
+        additional_dependencies: []
+        # Pass all Python source files (not just changed ones) for cross-module checking
+        pass_filenames: false
+        entry: mypy app ml
+
+  # ---------------------------------------------------------------------------
+  # Gitleaks — secret scanning
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+        name: Gitleaks secret scan
