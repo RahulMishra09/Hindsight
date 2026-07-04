@@ -74,3 +74,55 @@ Each entry follows the same template. Fill every section; write "none" rather th
 
 - `gitleaks` hook requires the `gitleaks` binary to be installed on developer machines; document in CONTRIBUTING.md. Low risk: CI installs it automatically.
 - `mypy --strict` on an empty codebase passes trivially; enforcing it becomes meaningful in Week 1 when application code arrives.
+
+---
+
+## Week 1 — 2026-07-04
+
+### Shipped
+
+- **docker-compose.yml** + `docker/Dockerfile` — multi-target build (api + worker), postgres:16 with pgvector, redis:7, healthchecks on all services.
+- **app/core/settings.py** — pydantic-settings `Settings` class with all env vars from `.env.example`. Cached via `@lru_cache`.
+- **app/core/logging.py** — structlog dual-mode rendering (JSON for production, console for dev). stdlib logging routed through structlog.
+- **app/core/db.py** — factory functions for async SQLAlchemy engine, sessionmaker, and Redis client. No connections at import time.
+- **app/core/dependencies.py** — FastAPI `Depends` factories wiring DB sessions, Redis, Publisher, and HealthService.
+- **app/core/app.py** — application factory with async lifespan managing engine + Redis lifecycle.
+- **app/main.py** — ASGI entrypoint for `uvicorn app.main:app`.
+- **app/models/base.py** — DeclarativeBase, UUIDPrimaryKeyMixin, TimestampMixin.
+- **app/models/ingest.py** — `Source`, `Document`, `IngestJob` ORM models with constraints and indexes. `content_hash` is the idempotency key on documents.
+- **alembic/** — env.py wired to async engine; initial migration creating pgvector extension + 3 tables with downgrade path.
+- **app/events/streams.py** — stream name constants (`hindsight:ingest.requested`, `hindsight:doc.fetched`) and `dlq_of()` helper.
+- **app/events/schemas.py** — versioned Pydantic event models (`IngestRequested`, `DocFetched`) with frozen config.
+- **app/events/publisher.py** — thin async wrapper around Redis XADD with event metadata.
+- **app/events/consumer.py** — `BaseWorker` ABC: XREADGROUP poll loop, exponential backoff retry (1s/2s/4s + jitter, max 3), DLQ on exhaustion, XAUTOCLAIM reaper for crashed consumers. Generic over event type.
+- **app/workers/echo.py** — toy `EchoWorker` consuming `ingest.requested` to prove chassis works.
+- **app/workers/__main__.py** — CLI entrypoint with SIGINT/SIGTERM signal handlers.
+- **app/api/v1/health.py** — `/v1/healthz` (liveness) and `/v1/readyz` (readiness probes Postgres + Redis).
+- **app/schemas/health.py** — `LivenessResponse`, `ComponentStatus`, `ReadinessReport`.
+- **app/services/health.py** — readiness orchestration; returns data only (router handles 503).
+- **app/repositories/health.py** — `SELECT 1` DB probe (only SQLAlchemy import in the project).
+- **CI updated** — separated lint (ruff + mypy) and test jobs, added dependency caching.
+- **39 unit tests** across 9 test files covering settings, event schemas, publisher, consumer retry/DLQ/reaper, health, models, logging, and app factory. All tests use fakes — zero monkeypatch.
+- **SAD.md updated** — §7 (data model) and §9 (stream names) aligned with implementation.
+
+### Cut
+
+- Integration tests with testcontainers — deferred to Week 2 when real pipeline workers exist.
+- Auth (JWT) — explicitly out of scope per brief.
+
+### Carried Over
+
+- none
+
+### Metrics
+
+- Lines of application code added: ~800
+- Test count (unit / integration / e2e): 39 / 0 / 0
+- Coverage %: not enforced yet (Week 2+)
+- Open issues closed: 0
+
+### Risks
+
+- Docker Desktop required on developer machines for `docker compose up`. Not all team members may have it installed. Mitigated: CONTRIBUTING.md updated.
+- `psycopg[binary]` added for Alembic sync DSN but offline migration mode uses async DSN — minor inconsistency, not blocking.
+- Data model (sources/documents/ingest_jobs) diverges from original SAD conceptual model (incidents/duplicate_pairs). SAD updated to reflect this. ML enrichment columns added in Week 2+ migrations.

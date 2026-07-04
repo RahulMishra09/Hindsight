@@ -52,8 +52,6 @@ These rules are **non-negotiable** in every PR. Violating them is a blocker.
 
 9. **Tests ship with every module.** A PR that adds `app/services/foo.py` must include `tests/unit/test_foo.py`. No exceptions.
 
-10. **No application code in Week 0.** This week creates rails only. `grep -r "FastAPI(" app/` must return nothing until Week 1.
-
 ---
 
 ## Descoped for v1.0 — Do NOT Build
@@ -75,8 +73,8 @@ The following items are explicitly out of scope. If you find yourself starting t
 
 See [docs/PROGRESS.md](docs/PROGRESS.md) for the latest weekly entry.
 
-**Current week:** Week 0 (repository bootstrap)
-**Next milestone:** Week 1 — Docker Compose, database schema, Alembic baseline, first FastAPI app factory, Redis consumer base class.
+**Current week:** Week 1 (production skeleton)
+**Next milestone:** Week 2 — First real pipeline workers (classifier, embedder), crawling, integration tests with testcontainers.
 
 ---
 

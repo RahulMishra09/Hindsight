@@ -203,25 +203,54 @@ See §19 ADR-0003 for rationale on each item.
 
 ## 7. Data Model (conceptual)
 
-```
-incidents
-├── id              UUID PK
-├── content_hash    SHA-256 of normalized raw text (unique, idempotency key)
-├── title           TEXT
-├── body            TEXT
-├── source          VARCHAR(64)     -- e.g. "github_issues", "pagerduty", "manual"
-├── severity        SMALLINT        -- 0 (SEV-4) to 4 (SEV-0); null before classification
-├── incident_type   VARCHAR(64)     -- classifier output label
-├── embedding       VECTOR(768)     -- pgvector; null before embedding run
-├── created_at      TIMESTAMPTZ
-├── processed_at    TIMESTAMPTZ     -- null until pipeline completes
-└── metadata        JSONB           -- arbitrary source-specific fields
+### Week 1 — ingestion skeleton
 
-duplicate_pairs
-├── incident_a_id   UUID FK
-├── incident_b_id   UUID FK
+```
+sources
+├── id              UUID PK (server-generated)
+├── name            VARCHAR(128) UNIQUE NOT NULL
+├── kind            VARCHAR(64) NOT NULL        -- e.g. "github_issues", "pagerduty", "rss"
+├── uri             TEXT NULL                   -- feed / repo URL
+├── active          BOOLEAN NOT NULL DEFAULT TRUE
+├── created_at      TIMESTAMPTZ (server default)
+└── updated_at      TIMESTAMPTZ (server default + on update)
+
+documents
+├── id              UUID PK (server-generated)
+├── source_id       UUID FK → sources.id ON DELETE CASCADE
+├── content_hash    VARCHAR(64) UNIQUE NOT NULL  -- SHA-256, idempotency key
+├── title           TEXT NULL
+├── body            TEXT NULL
+├── doc_metadata    JSONB NOT NULL DEFAULT '{}'
+├── created_at      TIMESTAMPTZ
+└── updated_at      TIMESTAMPTZ
+
+ingest_jobs
+├── id              UUID PK (server-generated)
+├── source_id       UUID FK → sources.id ON DELETE CASCADE
+├── status          VARCHAR(16) NOT NULL DEFAULT 'pending'  -- pending|running|succeeded|failed
+├── attempts        SMALLINT NOT NULL DEFAULT 0
+├── error           TEXT NULL
+├── started_at      TIMESTAMPTZ NULL
+├── finished_at     TIMESTAMPTZ NULL
+├── created_at      TIMESTAMPTZ
+└── updated_at      TIMESTAMPTZ
+```
+
+### Week 2+ — ML enrichment (added as columns to documents)
+
+```
+documents (additional columns — added via migration in Week 2+)
+├── severity        SMALLINT NULL               -- 0 (SEV-4) to 4 (SEV-0)
+├── incident_type   VARCHAR(64) NULL            -- classifier output label
+├── embedding       VECTOR(768) NULL            -- pgvector; bge-base-en-v1.5
+└── processed_at    TIMESTAMPTZ NULL
+
+duplicate_pairs (new table — Week 2+)
+├── document_a_id   UUID FK → documents.id
+├── document_b_id   UUID FK → documents.id
 ├── similarity      FLOAT4
-└── method          VARCHAR(32)     -- "minhash" | "cosine_ann"
+└── method          VARCHAR(32)                 -- "minhash" | "cosine_ann"
 ```
 
 ---
@@ -242,22 +271,26 @@ duplicate_pairs
 Each pipeline step publishes to a dedicated stream:
 
 ```
-hindsight:ingest          -- raw incident received
-hindsight:classify        -- ready for classification
-hindsight:embed           -- ready for embedding
-hindsight:deduplicate     -- ready for deduplication
-hindsight:complete        -- pipeline finished
+hindsight:ingest.requested  -- ingestion of a source requested
+hindsight:doc.fetched       -- document body fetched and stored
+hindsight:classify          -- ready for classification (Week 2+)
+hindsight:embed             -- ready for embedding (Week 2+)
+hindsight:deduplicate       -- ready for deduplication (Week 2+)
+hindsight:complete          -- pipeline finished (Week 2+)
 ```
+
+Failed messages are moved to `<stream>.dlq` (e.g. `hindsight:ingest.requested.dlq`) after retries are exhausted.
 
 Consumer groups:
 
-| Stream | Consumer group | Worker class |
-|--------|---------------|-------------|
-| `hindsight:classify` | `classifier-cg` | `ClassifierWorker` |
-| `hindsight:embed` | `embedder-cg` | `EmbedderWorker` |
-| `hindsight:deduplicate` | `deduplicator-cg` | `DeduplicatorWorker` |
+| Stream | Consumer group | Worker class | Status |
+|--------|---------------|-------------|--------|
+| `hindsight:ingest.requested` | `echo-cg` | `EchoWorker` | Week 1 (toy, proves chassis) |
+| `hindsight:classify` | `classifier-cg` | `ClassifierWorker` | Week 2+ |
+| `hindsight:embed` | `embedder-cg` | `EmbedderWorker` | Week 2+ |
+| `hindsight:deduplicate` | `deduplicator-cg` | `DeduplicatorWorker` | Week 2+ |
 
-Each message carries `incident_id` and `content_hash`. Workers ACK only after a successful DB write. Redelivery on crash is automatic (Redis XAUTOCLAIM).
+Each message carries `source_id`, `content_hash` (when available), and event metadata. Workers ACK only after a successful DB write. Redelivery on crash is automatic (Redis XAUTOCLAIM with 5-minute idle threshold).
 
 ---
 
