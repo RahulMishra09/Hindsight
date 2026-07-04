@@ -69,7 +69,8 @@ frontend/out/
 !.env.example
 
 # ML models and artefacts (large binaries — store in HF Hub)
-models/
+# /models/ anchors to repo root only — does NOT ignore app/models/ package
+/models/
 *.onnx
 *.bin
 *.pt
