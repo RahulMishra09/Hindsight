@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv:*)",
+      "Bash(pre-commit:*)",
+      "Bash(pytest:*)",
+      "Bash(mypy:*)",
+      "Bash(ruff:*)",
+      "Bash(alembic:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git status:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ],
+    "deny": []
+  }
+}
