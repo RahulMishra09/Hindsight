@@ -73,8 +73,8 @@ The following items are explicitly out of scope. If you find yourself starting t
 
 See [docs/PROGRESS.md](docs/PROGRESS.md) for the latest weekly entry.
 
-**Current week:** Week 1 (production skeleton)
-**Next milestone:** Week 2 — First real pipeline workers (classifier, embedder), crawling, integration tests with testcontainers.
+**Current week:** Week 2 (ingest pipeline)
+**Next milestone:** Week 3 — NLP enrichment: DeBERTa classifier, bge-base embeddings, semantic search.
 
 ---
 

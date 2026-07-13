@@ -46,6 +46,17 @@ class Settings(BaseSettings):
     # Consumer id prefix; the worker appends its PID for per-process uniqueness.
     redis_consumer_prefix: str = "hindsight"
 
+    # -- Crawler -----------------------------------------------------------
+    crawler_politeness_interval: float = 2.0
+    crawler_timeout: int = 30
+    crawler_user_agent: str = "HindsightBot/0.1"
+    crawler_max_concurrency: int = 20
+
+    # -- Deduper -----------------------------------------------------------
+    dedup_jaccard_threshold: float = 0.85
+    dedup_num_perm: int = 128
+    dedup_band_size: int = 4
+
     # -- Observability -----------------------------------------------------
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     log_format: Literal["json", "text"] = "text"

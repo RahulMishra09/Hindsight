@@ -1,9 +1,4 @@
-"""Ingestion-domain ORM models: sources, documents, ingest_jobs.
-
-These are the Week 1 skeleton tables that later weeks (crawling, parsing, ML)
-build on. Columns are intentionally minimal; the ``content_hash`` idempotency
-key (SAD §15) is present on ``documents`` from day one.
-"""
+"""Ingestion-domain ORM models: sources, documents, ingest_jobs."""
 
 from __future__ import annotations
 
@@ -26,17 +21,22 @@ from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 
 class IngestJobStatus(enum.StrEnum):
-    """Lifecycle states for an ingest job."""
-
     PENDING = "pending"
     RUNNING = "running"
     SUCCEEDED = "succeeded"
     FAILED = "failed"
 
 
-class Source(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """An origin from which documents are ingested (e.g. a repo, feed, upload)."""
+class DocumentStatus(enum.StrEnum):
+    DISCOVERED = "discovered"
+    FETCHED = "fetched"
+    PARSED = "parsed"
+    DEDUPED = "deduped"
+    DUPLICATE = "duplicate"
+    FAILED = "failed"
 
+
+class Source(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "sources"
 
     name: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
@@ -55,22 +55,29 @@ class Source(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
 
 class Document(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """A single ingested document; ``content_hash`` is the idempotency key."""
-
     __tablename__ = "documents"
     __table_args__ = (
         UniqueConstraint("content_hash", name="uq_documents_content_hash"),
         Index("ix_documents_source_id", "source_id"),
+        Index("ix_documents_status", "status"),
+        Index("ix_documents_url", "url"),
     )
 
     source_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("sources.id", ondelete="CASCADE"),
         nullable=False,
     )
-    # SHA-256 of normalized raw text (64 hex chars).
     content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     title: Mapped[str | None] = mapped_column(Text(), nullable=True)
     body: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    url: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    status: Mapped[DocumentStatus] = mapped_column(
+        String(16),
+        nullable=False,
+        default=DocumentStatus.DISCOVERED,
+        server_default=DocumentStatus.DISCOVERED.value,
+    )
+    failed_stage: Mapped[str | None] = mapped_column(String(32), nullable=True)
     doc_metadata: Mapped[dict[str, object]] = mapped_column(
         JSONB(), nullable=False, default=dict, server_default="{}"
     )
@@ -79,8 +86,6 @@ class Document(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
 
 class IngestJob(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """Tracks one unit of ingestion work for a source."""
-
     __tablename__ = "ingest_jobs"
     __table_args__ = (Index("ix_ingest_jobs_source_id_status", "source_id", "status"),)
 

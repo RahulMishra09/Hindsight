@@ -126,3 +126,47 @@ Each entry follows the same template. Fill every section; write "none" rather th
 - Docker Desktop required on developer machines for `docker compose up`. Not all team members may have it installed. Mitigated: CONTRIBUTING.md updated.
 - `psycopg[binary]` added for Alembic sync DSN but offline migration mode uses async DSN — minor inconsistency, not blocking.
 - Data model (sources/documents/ingest_jobs) diverges from original SAD conceptual model (incidents/duplicate_pairs). SAD updated to reflect this. ML enrichment columns added in Week 2+ migrations.
+
+---
+
+## Week 2 — 2026-07-13
+
+### Shipped
+
+- **Document state machine** — `DocumentStatus` enum (`DISCOVERED → FETCHED → PARSED → DEDUPED|DUPLICATE → FAILED`) + `failed_stage` column. Alembic migration `0002_pipeline` adds `status`, `failed_stage`, `url` columns to `documents`, creates `minhash_signatures` table.
+- **CrawlerWorker** (`app/workers/crawler.py`) — subclasses `BaseWorker[DocDiscovered]`, fetches raw HTML via `httpx.AsyncClient`, enforces SSRF guard (blocks private/loopback/link-local IPs), robots.txt compliance (cached per domain), per-domain politeness (1 req/2s), conditional GET (ETag/Last-Modified), content_hash dedup at fetch time. Emits `DocFetched`.
+- **ParserWorker** (`app/workers/parser.py`) — subclasses `BaseWorker[DocFetched]`, extracts clean text via `trafilatura` with `readability-lxml` fallback, NFC unicode normalization, ASCII-ratio language filter (rejects non-English), section heuristics (Impact/Timeline/Root Cause/Lessons Learned). Emits `DocParsed`.
+- **DeduperWorker** (`app/workers/deduper.py`) — subclasses `BaseWorker[DocParsed]`, MinHash LSH (datasketch, 128 permutations, band-size 4), Jaccard > 0.85 threshold, persists band hashes + hashvalues in `minhash_signatures` for restart-safe LSH. Emits `DocDeduped`.
+- **Seed loader** (`app/ingest/seed_loader.py`) — fetches danluu/post-mortems and hjacobs/kubernetes-failure-stories READMEs, extracts URLs via markdown link regex, deduplicates, creates `Source` + `Document` rows (status=DISCOVERED), emits `DocDiscovered` events. Runnable as `python -m app.ingest`.
+- **Admin API** — `POST /v1/ingest/sources` endpoint with `IngestService` orchestrating source creation. DI factories for `SourceRepository`, `DocumentRepository`, `IngestService`.
+- **Repositories** — `DocumentRepository` (CRUD, status transitions, count_by_status), `SourceRepository` (CRUD, list_active), `MinHashRepository` (upsert, band-hash candidate search via JSONB `?|` operator).
+- **Support modules** — `ssrf_guard.py` (async DNS resolution, blocks RFC 1918/loopback/link-local/reserved), `robots.py` (TTL-cached per-domain `RobotFileParser`), `politeness.py` (per-domain async lock + minimum delay).
+- **Pipeline report** (`scripts/pipeline_report.py`) — per-status document counts, DLQ depths, duplicate rate, top failure reasons.
+- **Worker CLI** — `python -m app.workers [echo|crawler|parser|deduper]` selects worker type. Each creates the appropriate sessionmaker and Redis client.
+- **New event schemas** — `DocDiscovered`, `DocParsed`, `DocDeduped` (frozen, extra=forbid, versioned). New stream constants: `doc.discovered`, `doc.parsed`, `doc.deduped`. New consumer groups: `crawler-cg`, `parser-cg`, `deduper-cg`.
+- **New dependencies** — `httpx`, `trafilatura`, `readability-lxml`, `datasketch`, `lxml` (runtime). `hypothesis` (dev).
+- **63 new unit tests** (102 total across 18 files) — SSRF guard (11 tests), robots.txt checker (5), politeness limiter (4), seed loader URL extraction (7), ingest service (4), parser helpers + golden HTML (8), deduper MinHash/Jaccard (10), crawler integration tests for politeness/robots/SSRF/conditional-GET (6). All fakes, zero monkeypatch.
+
+### Cut
+
+- Integration test with testcontainers through all three workers — deferred to Week 3 when the full pipeline can be end-to-end tested with real Postgres + Redis.
+- `dateparser` for metadata extraction — trafilatura handles basic date extraction; dedicated dateparser deferred.
+- Language detection via `fasttext`/`lingua` — ASCII-ratio heuristic sufficient for v1 English-only filtering.
+
+### Carried Over
+
+- none
+
+### Metrics
+
+- Lines of application code added: ~1,400
+- Test count (unit / integration / e2e): 102 / 0 / 0
+- Coverage %: not enforced yet
+- Open issues closed: 0
+
+### Risks
+
+- `trafilatura` extraction quality varies by page structure — some postmortems with heavy JavaScript rendering will fail extraction and land in FAILED status. Acceptable for v1 scale (1,000 docs).
+- MinHash LSH band-hash search uses JSONB `?|` operator which scans all rows. Efficient at 1,000 docs; needs a GIN index at 10,000+.
+- Politeness limiter is per-process. Multiple crawler workers on the same host effectively halve the politeness interval. Documented as limitation; acceptable for single-process v1 deployment.
+- `content_hash` is recomputed at each stage (URL hash → raw HTML hash → normalized text hash). The unique constraint on `content_hash` can cause conflicts if two different URLs produce identical normalized text. The crawler handles this as early dedup.

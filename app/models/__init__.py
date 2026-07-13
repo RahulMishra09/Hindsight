@@ -1,15 +1,15 @@
-"""ORM models. Importing this package makes every model visible on ``Base.metadata``.
-
-Alembic imports ``app.models`` so autogenerate sees all tables.
-"""
+"""ORM models. Importing this package makes every model visible on ``Base.metadata``."""
 
 from app.models.base import Base
-from app.models.ingest import Document, IngestJob, IngestJobStatus, Source
+from app.models.ingest import Document, DocumentStatus, IngestJob, IngestJobStatus, Source
+from app.models.minhash_signature import MinHashSignature
 
 __all__ = [
     "Base",
     "Document",
+    "DocumentStatus",
     "IngestJob",
     "IngestJobStatus",
+    "MinHashSignature",
     "Source",
 ]

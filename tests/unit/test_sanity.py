@@ -22,6 +22,7 @@ def test_package_skeleton_importable() -> None:
     import app.api.v1
     import app.core
     import app.events
+    import app.ingest
     import app.ml
     import app.models
     import app.repositories

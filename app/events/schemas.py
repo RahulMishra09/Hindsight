@@ -1,13 +1,4 @@
-"""Versioned event schemas carried on Redis Streams.
-
-Every event is an immutable Pydantic model that self-describes its ``event_type``
-and ``version`` so consumers can evolve payloads without breaking older
-producers. Wire format is a single JSON string stored under the ``data`` field of
-a stream entry (see :mod:`app.events.publisher`).
-
-Adding a breaking change to a payload = bump ``version`` and, if consumers must
-distinguish, branch on it. Backward-compatible additions keep the same version.
-"""
+"""Versioned event schemas carried on Redis Streams."""
 
 from __future__ import annotations
 
@@ -27,20 +18,14 @@ def _utcnow() -> datetime:
 
 
 class BaseEvent(BaseModel):
-    """Common metadata shared by every event."""
-
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     event_id: str = Field(default_factory=_new_event_id)
     occurred_at: datetime = Field(default_factory=_utcnow)
-    # ``content_hash`` is the pipeline-wide idempotency key (SAD §15). It may be
-    # absent at the very first hop (before the body is fetched/normalized).
     content_hash: str | None = None
 
 
 class IngestRequested(BaseEvent):
-    """Emitted when ingestion of a source is requested. First hop in the pipeline."""
-
     event_type: Literal["ingest.requested"] = "ingest.requested"
     version: Literal[1] = 1
 
@@ -48,13 +33,38 @@ class IngestRequested(BaseEvent):
     uri: str | None = None
 
 
-class DocFetched(BaseEvent):
-    """Emitted once a document's raw body has been fetched for a source."""
+class DocDiscovered(BaseEvent):
+    event_type: Literal["doc.discovered"] = "doc.discovered"
+    version: Literal[1] = 1
 
+    source_id: str
+    document_id: str
+    url: str
+
+
+class DocFetched(BaseEvent):
     event_type: Literal["doc.fetched"] = "doc.fetched"
     version: Literal[1] = 1
 
     source_id: str
     document_id: str
-    # Fetched docs always carry a content_hash; narrow the optional base field.
     content_hash: Annotated[str, Field()]
+
+
+class DocParsed(BaseEvent):
+    event_type: Literal["doc.parsed"] = "doc.parsed"
+    version: Literal[1] = 1
+
+    source_id: str
+    document_id: str
+    content_hash: Annotated[str, Field()]
+
+
+class DocDeduped(BaseEvent):
+    event_type: Literal["doc.deduped"] = "doc.deduped"
+    version: Literal[1] = 1
+
+    document_id: str
+    content_hash: Annotated[str, Field()]
+    is_duplicate: bool = False
+    duplicate_of: str | None = None
