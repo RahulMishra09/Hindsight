@@ -73,8 +73,8 @@ The following items are explicitly out of scope. If you find yourself starting t
 
 See [docs/PROGRESS.md](docs/PROGRESS.md) for the latest weekly entry.
 
-**Current week:** Week 2 (ingest pipeline)
-**Next milestone:** Week 3 — NLP enrichment: DeBERTa classifier, bge-base embeddings, semantic search.
+**Current week:** Week 3 (dataset publication)
+**Next milestone:** Week 4 — NLP enrichment: DeBERTa classifier, weak supervision labels.
 
 ---
 
@@ -111,5 +111,11 @@ pre-commit run --all-files
 | SQLAlchemy Base | `app/models/base.py` (Week 1) |
 | Alembic env | `alembic/env.py` (Week 1) |
 | Redis consumer base | `app/events/consumer.py` (Week 1) |
+| Incident model | `app/models/incident.py` (Week 3) |
+| License audit | `app/services/license_audit.py` (Week 3) |
+| Promoter service | `app/services/promoter.py` (Week 3) |
+| Export pipeline | `scripts/export_dataset.py` (Week 3) |
+| Datasheet | `docs/datasheet.md` (Week 3) |
+| Dataset card | `docs/dataset_card.md` (Week 3) |
 | ADRs | `docs/adr/` |
 | Env var reference | `.env.example` |

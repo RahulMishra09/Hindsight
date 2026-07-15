@@ -170,3 +170,47 @@ Each entry follows the same template. Fill every section; write "none" rather th
 - MinHash LSH band-hash search uses JSONB `?|` operator which scans all rows. Efficient at 1,000 docs; needs a GIN index at 10,000+.
 - Politeness limiter is per-process. Multiple crawler workers on the same host effectively halve the politeness interval. Documented as limitation; acceptable for single-process v1 deployment.
 - `content_hash` is recomputed at each stage (URL hash → raw HTML hash → normalized text hash). The unique constraint on `content_hash` can cause conflicts if two different URLs produce identical normalized text. The crawler handles this as early dedup.
+
+---
+
+## Week 3 — 2026-07-15
+
+### Shipped
+
+- **Incident model** (`app/models/incident.py`) — `Incident` ORM model with `document_id` FK (unique), `org`, `title`, `url`, `occurred_on` (date), `severity` (smallint, heuristic), `summary`, `sections` (JSONB), `content_hash` (unique), `license` (default `all-rights-reserved`). Alembic migration `0003_incidents` creates the table with indexes on org, severity, occurred_on.
+- **IncidentRepository** (`app/repositories/incident.py`) — CRUD + `get_by_document_id`, `get_by_content_hash`, `list_all` (paginated), `count`.
+- **Promoter service** (`app/services/promoter.py`) — Pure functions for metadata extraction from documents: `extract_org` (URL domain parsing with subdomain stripping, github.io handling), `estimate_severity` (keyword-based SEV-0 through SEV-3), `extract_date` (ISO/US/long-month date formats), `build_summary` (sentence-boundary truncation at 500 chars).
+- **Promotion script** (`scripts/promote.py`) — Batch-promotes DEDUPED documents to incident rows with idempotency (skip existing content_hash).
+- **License audit tooling** (`app/services/license_audit.py`) — License detection from text (CC0, CC-BY, Apache, MIT patterns) and GitHub repo license mapping (SPDX identifiers). Export policy engine: `apply_export_policy` pure function gates `full_text` inclusion on permissive license (`is_permissive` check against frozen set). Default `all-rights-reserved` for unknown licenses.
+- **Export pipeline** (`scripts/export_dataset.py`) — Builds HuggingFace `DatasetDict` (train split) with features: id, org, title, url, date, severity, sections (JSON), license, full_text (gated by license policy), content_hash. Deterministic sort by content_hash. Version pinned to git tag (v-prefix stripped for semver). SHA-256 manifest (`manifest.json`) for byte-identical reproducibility. Uses Arrow format via `save_to_disk`.
+- **Datasheet** (`docs/datasheet.md`) — Full datasheet following Gebru et al. (2021): motivation, composition (field schema), collection process (5-stage pipeline), preprocessing, uses, distribution (per-record license policy), maintenance.
+- **Dataset card** (`docs/dataset_card.md`) — HF Hub README with YAML front matter, feature table, severity scale, section types, usage example, license policy, processing pipeline, reproducibility, citation block.
+- **Stats generator** (`scripts/dataset_stats.py`) — Reads exported dataset and generates severity/org/license/section distribution tables for the dataset card.
+- **HF Hub publish workflow** (`.github/workflows/publish.yml`) — Tag-triggered GitHub Actions workflow: exports dataset, pushes to HF Hub via `huggingface_hub`. Manual `workflow_dispatch` with dry-run option. Push script (`scripts/push_dataset_to_hub.py`) creates repo, uploads folder, tags revision.
+- **New dependencies** — `datasets>=3.0.0`, `huggingface-hub>=0.25.0`.
+- **65 new unit tests** (167 total across 22 files) — Promoter: org extraction (8), severity heuristic (8), date parsing (7), summary (4). License audit: text detection (9), GitHub mapping (5), combined detector (4), permissive check (4), export policy (3). Export: determinism (3), license policy in export (3), schema validation (7).
+
+### Cut
+
+- Integration tests with testcontainers for the full promote → export flow — deferred until real Postgres is available in CI.
+- ML-derived labels (DeBERTa classifier, embeddings) — deferred to Week 4-5 per plan.
+- Active annotation loop — out of scope for v1.
+
+### Carried Over
+
+- none
+
+### Metrics
+
+- Lines of application code added: ~900
+- Test count (unit / integration / e2e): 167 / 0 / 0
+- Coverage %: not enforced yet
+- Open issues closed: 0
+
+### Risks
+
+- Severity heuristic is keyword-based (no ML classifier yet); accuracy is limited for edge cases. Acceptable for v0.1 dataset; ML classifier planned for Week 4.
+- Org extraction from URL domain is heuristic; CDN-hosted or aggregator pages may be misattributed.
+- Date extraction may pick up unrelated dates from document body. Title dates are preferred when available.
+- License detection is conservative: defaults to `all-rights-reserved` when no signal found. This means most records will lack `full_text` in the exported dataset until more license signals are added.
+- Export determinism depends on stable Arrow serialization; tested with `datasets>=3.0.0` but cross-version determinism is not guaranteed.
