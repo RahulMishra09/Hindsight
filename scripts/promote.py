@@ -14,6 +14,7 @@ from app.core.settings import get_settings
 from app.models.ingest import DocumentStatus
 from app.repositories.document import DocumentRepository
 from app.repositories.incident import IncidentRepository
+from app.services.license_audit import detect_license
 from app.services.promoter import build_summary, estimate_severity, extract_date, extract_org
 
 logger = get_logger(__name__)
@@ -46,6 +47,8 @@ async def promote(batch_size: int = 200) -> int:
                 sections_raw = doc.doc_metadata.get("sections", []) if doc.doc_metadata else []
                 sections = list(sections_raw) if isinstance(sections_raw, list) else []
 
+                license_id = detect_license(doc.body, doc.url)
+
                 await inc_repo.create(
                     document_id=doc.id,
                     org=org,
@@ -56,6 +59,7 @@ async def promote(batch_size: int = 200) -> int:
                     summary=summary,
                     sections=sections,
                     content_hash=doc.content_hash,
+                    license=license_id,
                 )
                 promoted += 1
 

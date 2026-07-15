@@ -36,3 +36,9 @@ class Incident(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         JSONB(), nullable=False, default=list, server_default="[]"
     )
     content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    license: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+        default="all-rights-reserved",
+        server_default="all-rights-reserved",
+    )

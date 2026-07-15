@@ -33,6 +33,12 @@ def upgrade() -> None:
         sa.Column("sections", postgresql.JSONB(), server_default="[]", nullable=False),
         sa.Column("content_hash", sa.String(64), nullable=False),
         sa.Column(
+            "license",
+            sa.String(64),
+            nullable=False,
+            server_default="all-rights-reserved",
+        ),
+        sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),

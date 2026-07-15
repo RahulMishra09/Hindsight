@@ -28,6 +28,7 @@ class IncidentRepository:
         summary: str | None = None,
         sections: list[str] | None = None,
         content_hash: str,
+        license: str = "all-rights-reserved",
     ) -> Incident:
         incident = Incident(
             document_id=document_id,
@@ -39,6 +40,7 @@ class IncidentRepository:
             summary=summary,
             sections=sections or [],
             content_hash=content_hash,
+            license=license,
         )
         self._session.add(incident)
         await self._session.flush()
