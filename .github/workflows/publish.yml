@@ -1,48 +1,66 @@
 name: Publish Artefacts
 
-# Triggered on version tags: v0.3.0 (dataset, Week 3), v0.5.0 (model, Week 5)
-# This workflow is a STUB — steps are commented out until their respective weeks.
 on:
   push:
     tags:
       - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (no upload)"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
 
 jobs:
   publish-dataset:
     name: Publish Dataset to Hugging Face Hub
     runs-on: ubuntu-latest
-    # Enable in Week 3 when the labelled dataset is ready
-    if: false  # Remove this line in Week 3
     steps:
       - uses: actions/checkout@v4
 
-      # - name: Install uv
-      #   uses: astral-sh/setup-uv@v5
-      #   with:
-      #     version: "latest"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
 
-      # - name: Set up Python
-      #   uses: actions/setup-python@v5
-      #   with:
-      #     python-version: "3.12"
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-      # - name: Install dependencies
-      #   run: uv sync
+      - name: Install dependencies
+        run: uv sync
 
-      # - name: Push dataset to Hugging Face Hub
-      #   env:
-      #     HF_TOKEN: ${{ secrets.HF_TOKEN }}
-      #     HF_DATASET_REPO: ${{ vars.HF_DATASET_REPO }}
-      #   run: |
-      #     uv run python scripts/push_dataset_to_hub.py \
-      #       --repo "$HF_DATASET_REPO" \
-      #       --tag "${{ github.ref_name }}"
+      - name: Export dataset
+        env:
+          DATABASE_URL: "postgresql+asyncpg://hindsight:hindsight@localhost:5432/hindsight"
+        run: |
+          uv run python -m scripts.export_dataset \
+            --output-dir data/export \
+            --version "${{ github.ref_name }}"
+
+      - name: Push dataset to Hugging Face Hub
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          DRY_RUN_FLAG=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
+            DRY_RUN_FLAG="--dry-run"
+          fi
+          uv run python -m scripts.push_dataset_to_hub \
+            --repo "${{ vars.HF_DATASET_REPO || 'RahuL0009/hindsight-corpus' }}" \
+            --tag "${{ github.ref_name || 'dev' }}" \
+            --export-dir data/export \
+            $DRY_RUN_FLAG
 
   publish-model:
     name: Publish ONNX Model to Hugging Face Hub
     runs-on: ubuntu-latest
-    # Enable in Week 5 when the ONNX model is exported and validated
-    if: false  # Remove this line in Week 5
+    if: false  # Enable in Week 5
     steps:
       - uses: actions/checkout@v4
 
@@ -82,8 +100,7 @@ jobs:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     needs: []  # Add publish-dataset and publish-model when enabled
-    # Enable in Week 6 for the full system release
-    if: false  # Remove this line in Week 6
+    if: false  # Enable in Week 6
     steps:
       - uses: actions/checkout@v4
 
