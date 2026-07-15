@@ -78,26 +78,28 @@ async def _fetch_incidents(batch_size: int = 5000) -> list[dict[str, object]]:
 def build_dataset(records: list[dict[str, object]], version: str) -> Any:
     import datasets
 
-    ds = datasets.Dataset.from_list(records)
+    semver = version.lstrip("v") if version.startswith("v") else version
+
+    info = datasets.DatasetInfo(
+        description="Hindsight incident corpus — cleaned, license-audited postmortems.",
+        version=semver,
+        license="Apache-2.0",
+    )
+
+    ds = datasets.Dataset.from_list(records, info=info)
     ds_dict = datasets.DatasetDict({"train": ds})
     ds_dict = ds_dict.cast_column(
         "severity",
         datasets.Value("int32"),
     )
 
-    info = datasets.DatasetInfo(
-        description="Hindsight incident corpus — cleaned, license-audited postmortems.",
-        version=version,
-        license="Apache-2.0",
-    )
-    ds_dict["train"].info = info
     return ds_dict
 
 
 def compute_manifest_hash(output_dir: Path) -> str:
     h = hashlib.sha256()
-    parquet_files = sorted(output_dir.rglob("*.parquet"))
-    for f in parquet_files:
+    data_files = sorted(output_dir.rglob("*.parquet")) or sorted(output_dir.rglob("*.arrow"))
+    for f in data_files:
         h.update(f.read_bytes())
     return h.hexdigest()
 
