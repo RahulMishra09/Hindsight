@@ -2,6 +2,7 @@
 
 from app.models.base import Base
 from app.models.incident import Incident
+from app.models.incident_label import IncidentLabel
 from app.models.ingest import Document, DocumentStatus, IngestJob, IngestJobStatus, Source
 from app.models.minhash_signature import MinHashSignature
 
@@ -10,6 +11,7 @@ __all__ = [
     "Document",
     "DocumentStatus",
     "Incident",
+    "IncidentLabel",
     "IngestJob",
     "IngestJobStatus",
     "MinHashSignature",
