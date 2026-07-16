@@ -73,8 +73,8 @@ The following items are explicitly out of scope. If you find yourself starting t
 
 See [docs/PROGRESS.md](docs/PROGRESS.md) for the latest weekly entry.
 
-**Current week:** Week 3 (dataset publication)
-**Next milestone:** Week 4 — NLP enrichment: DeBERTa classifier, weak supervision labels.
+**Current week:** Week 4 (taxonomy, weak supervision, annotation tooling)
+**Next milestone:** Week 5 — DeBERTa classifier training, ONNX export, ClassifierWorker.
 
 ---
 
@@ -117,5 +117,13 @@ pre-commit run --all-files
 | Export pipeline | `scripts/export_dataset.py` (Week 3) |
 | Datasheet | `docs/datasheet.md` (Week 3) |
 | Dataset card | `docs/dataset_card.md` (Week 3) |
+| Taxonomy definition | `docs/taxonomy.md` (Week 4) |
+| IncidentLabel model | `app/models/incident_label.py` (Week 4) |
+| Keyword labeling functions | `ml/weak_supervision/keyword_lfs.py` (Week 4) |
+| LLM labeling functions | `ml/weak_supervision/llm_lf.py` (Week 4) |
+| Label voter/reconciler | `ml/weak_supervision/voter.py` (Week 4) |
+| Reconcile script | `scripts/reconcile_labels.py` (Week 4) |
+| Annotation app | `app/annotation/app.py` (Week 4) |
+| Agreement metrics | `scripts/agreement.py` (Week 4) |
 | ADRs | `docs/adr/` |
 | Env var reference | `.env.example` |

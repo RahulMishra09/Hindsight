@@ -214,3 +214,42 @@ Each entry follows the same template. Fill every section; write "none" rather th
 - Date extraction may pick up unrelated dates from document body. Title dates are preferred when available.
 - License detection is conservative: defaults to `all-rights-reserved` when no signal found. This means most records will lack `full_text` in the exported dataset until more license signals are added.
 - Export determinism depends on stable Arrow serialization; tested with `datasets>=3.0.0` but cross-version determinism is not guaranteed.
+
+---
+
+## Week 4 — 2026-07-16
+
+### Shipped
+
+- **15-label taxonomy** (`docs/taxonomy.md`) — root-cause taxonomy with definitions, inclusion/exclusion criteria, 2 positive + 1 near-miss examples per label. Labels: config-change, retry-storm, cascading-failure, dns, certificate-expiry, capacity-exhaustion, bad-deploy, dependency-failure, network-partition, database-failure, thundering-herd, monitoring-gap, human-error, data-corruption, quota-limit.
+- **IncidentLabel model** (`app/models/incident_label.py`) — ORM model with unique constraint on (incident_id, label, annotator_id) for idempotent multi-source labeling. Sources: `weak` (silver from LFs), `human` (gold from annotation), `model` (future classifier). Alembic migration `0004_incident_labels`.
+- **IncidentLabelRepository** (`app/repositories/incident_label.py`) — upsert (ON CONFLICT UPDATE), get_labels_for_incident, get_labels_by_source, count_by_label, delete_by_source, get_annotators_for_incident.
+- **Keyword labeling functions** (`ml/weak_supervision/keyword_lfs.py`) — 15 `KeywordLF` instances with regex patterns per label. Section-aware: root-cause section matches boosted to 0.9 confidence vs 0.7 for body text. Core types in `ml/weak_supervision/types.py` (Vote, LFResult, IncidentRecord, LabelingFunction Protocol).
+- **LLM labeling functions** (`ml/weak_supervision/llm_lf.py`) — Groq API (Llama 3.3 70B) zero-shot classifier with disk cache by (content_hash, prompt_version). Handles rate limiting (429 + Retry-After). LLM_CONFIDENCE = 0.85.
+- **Label voter/reconciler** (`ml/weak_supervision/voter.py`) — LabelVoter class with confidence-weighted voting, configurable threshold and min_voters. Also build_conflict_matrix and compute_coverage functions. Reconciliation script (`scripts/reconcile_labels.py`) runs keyword LFs + optional LLM, votes, writes silver labels to DB, generates `docs/weak_supervision_report.md`.
+- **Annotation app** (`app/annotation/`) — FastAPI app on port 8001 with keyboard shortcuts (1-9, 0, q-t → Enter), silver label hints (yellow dot), progress bar, dark mode. Stratified sampling (`app/annotation/sampler.py`) prioritizes rare labels for balanced annotation coverage.
+- **Agreement metrics** (`scripts/agreement.py`) — Computes per-label Cohen's kappa and overall Krippendorff's alpha over doubly-annotated incidents, with markdown report generation.
+- **112 new tests** (279 total across 28 files) — keyword LFs (50 tests), LLM LF (17), voter (11), voter property tests (8 via Hypothesis), annotation sampler + templates (13), agreement metrics (13).
+
+### Cut
+
+- Model training, ONNX export, ClassifierWorker — deferred to Week 5 per plan.
+- Running reconcile_labels.py against live DB (requires populated incidents table).
+
+### Carried Over
+
+- none
+
+### Metrics
+
+- Lines of application code added: ~2,000
+- Test count (unit / integration / e2e): 279 / 0 / 0
+- Coverage %: not enforced yet
+- Open issues closed: 0
+
+### Risks
+
+- Keyword LF patterns are hand-crafted and may have low recall for incidents that use unusual terminology. Mitigated by LLM LF as a complementary signal.
+- LLM labeling requires a GROQ_API_KEY and is rate-limited; batch runs on large corpora may take time. Mitigated by disk caching.
+- Silver label quality depends on LF coverage overlap; labels with fewer than 30 silver positives may need to be merged or dropped during training.
+- Annotation app uses a global sessionmaker (lazy init); not suitable for multi-worker production deployment. Acceptable for single-annotator v1 use.
