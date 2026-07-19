@@ -73,8 +73,8 @@ The following items are explicitly out of scope. If you find yourself starting t
 
 See [docs/PROGRESS.md](docs/PROGRESS.md) for the latest weekly entry.
 
-**Current week:** Week 4 (taxonomy, weak supervision, annotation tooling)
-**Next milestone:** Week 5 — DeBERTa classifier training, ONNX export, ClassifierWorker.
+**Current week:** Week 5 (DeBERTa classifier training, evaluation, ONNX export, ClassifierWorker)
+**Next milestone:** Week 6 — embeddings, semantic search, retrieval API.
 
 ---
 
@@ -125,5 +125,18 @@ pre-commit run --all-files
 | Reconcile script | `scripts/reconcile_labels.py` (Week 4) |
 | Annotation app | `app/annotation/app.py` (Week 4) |
 | Agreement metrics | `scripts/agreement.py` (Week 4) |
+| Training pipeline config | `ml/training/config.yaml` (Week 5) |
+| Training data/split | `ml/training/data.py` (Week 5) |
+| DeBERTa trainer | `ml/training/trainer.py` (Week 5) |
+| Threshold tuning | `ml/training/threshold.py` (Week 5) |
+| Training entry point | `ml/training/run.py` (Week 5) |
+| Evaluation framework | `ml/eval/evaluator.py` (Week 5) |
+| Golden set builder | `ml/eval/golden_set.py` (Week 5) |
+| CI regression baseline | `ml/eval/baseline.json` (Week 5) |
+| TaxonomyClassifier | `app/ml/classifier.py` (Week 5) |
+| ONNX export | `ml/export/onnx_export.py` (Week 5) |
+| ClassifierWorker | `app/workers/classifier.py` (Week 5) |
+| Backfill classify | `scripts/backfill_classify.py` (Week 5) |
+| HF Hub model push | `scripts/push_model_to_hub.py` (Week 5) |
 | ADRs | `docs/adr/` |
 | Env var reference | `.env.example` |

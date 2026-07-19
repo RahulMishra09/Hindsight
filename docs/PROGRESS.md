@@ -253,3 +253,49 @@ Each entry follows the same template. Fill every section; write "none" rather th
 - LLM labeling requires a GROQ_API_KEY and is rate-limited; batch runs on large corpora may take time. Mitigated by disk caching.
 - Silver label quality depends on LF coverage overlap; labels with fewer than 30 silver positives may need to be merged or dropped during training.
 - Annotation app uses a global sessionmaker (lazy init); not suitable for multi-worker production deployment. Acceptable for single-annotator v1 use.
+
+---
+
+## Week 5 — 2026-07-19
+
+### Shipped
+
+- **Training pipeline** (`ml/training/`) — Config-driven (YAML → frozen dataclasses), DeBERTa-v3-base + sigmoid head, BCE loss with per-label pos_weight (capped at 10.0). `merge_silver_gold()` merges silver/gold labels (gold overrides). `MultilabelStratifiedShuffleSplit` for val/test splits. `WeightedBCETrainer` extends HF Trainer with sample-weight support. fp16, early stopping (patience 3), W&B offline logging. Seeded, resumable via HF checkpoints.
+- **Per-label threshold tuning** (`ml/training/threshold.py`) — Grid search [0.1, 0.9] per label to maximize F1 on validation set. Saved as `thresholds.json`.
+- **Evaluation framework** (`ml/eval/evaluator.py`) — Micro/macro-F1, per-label P/R/F1, ECE calibration (10-bin), org and doc-length slice metrics. `EvalReport` frozen dataclass. Markdown report generator. Baseline save/load for CI.
+- **Golden set builder** (`ml/eval/golden_set.py`) — Exports gold-annotated incident IDs + content hashes to JSONL for frozen reproducible evaluation.
+- **CI regression gate** (`tests/unit/test_regression_gate.py`) — Loads `ml/eval/baseline.json`; fails if macro-F1 drops >1pt or any label's F1 drops >3pts. Includes gate logic unit tests.
+- **TaxonomyClassifier** (`app/ml/classifier.py`) — Long-doc handling: splits title/summary/sections into chunks, runs DeBERTa inference per-section, max-pools label probabilities across sections, applies per-label thresholds. Loads thresholds.json if present.
+- **ONNX export** (`ml/export/onnx_export.py`) — Exports PyTorch model to ONNX via optimum, applies int8 dynamic quantization (AVX2). Includes parity check (PyTorch vs ONNX logit comparison, atol=0.01), latency benchmark (mean/p50/p95/p99/min/max ms), and `run_onnx_inference` for ONNX-based batch prediction.
+- **ClassifierWorker** (`app/workers/classifier.py`) — Consumes `doc.deduped`, skips duplicates, looks up incident by document_id, runs TaxonomyClassifier with per-section inference, writes `incident_labels` with `source='model'` and confidence scores, emits `doc.classified`. Idempotent: skips if model labels already exist.
+- **Backfill command** (`scripts/backfill_classify.py`) — Batch-classifies all unclassified incidents against a trained model. Supports `--dry-run`.
+- **HF Hub model push** (`scripts/push_model_to_hub.py`) — Builds bundle (ONNX + thresholds + tokenizer + README model card), pushes to HF Hub with version tag. Model card includes taxonomy labels, training details, ONNX usage example, limitations, citation.
+- **Publish workflow updated** (`.github/workflows/publish.yml`) — `publish-model` job enabled: exports ONNX, pushes to HF Hub on git tag push. Supports dry-run via workflow_dispatch.
+- **New event schema** — `DocClassified` (document_id, incident_id, content_hash, labels). New stream `hindsight:doc.classified`, consumer group `classifier-cg`.
+- **New dependencies** — `torch>=2.2.0`, `transformers>=4.40.0`, `safetensors`, `scikit-learn`, `iterative-stratification`, `optimum[onnxruntime]`, `onnxruntime`, `pyyaml`.
+- **63 new tests** (342 total across 34 files) — Training: config/merge/split/pos_weights (15), Evaluation: metrics/ECE/report/baseline (8), Regression gate (9), Classifier: section splitting/max-pool/thresholds (13), ONNX export: parity/benchmark (6), ClassifierWorker: events/streams (7), Model push: card/bundle (5).
+
+### Cut
+
+- Running training end-to-end on full corpus (requires GPU + populated DB with silver/gold labels).
+- ONNX parity and latency benchmark integration tests (require trained model checkpoint).
+- Backfill execution against live DB (requires deployed model).
+
+### Carried Over
+
+- none
+
+### Metrics
+
+- Lines of application code added: ~1,700
+- Test count (unit / integration / e2e): 342 / 0 / 0
+- Coverage %: not enforced yet
+- Open issues closed: 0
+
+### Risks
+
+- Training pipeline requires a GPU for practical training times; CPU-only training is supported but slow for 10 epochs. Mitigated by early stopping and resumable checkpoints.
+- Threshold tuning is static post-training; model drift over time may require periodic re-tuning.
+- ONNX int8 quantization may introduce minor accuracy degradation (parity check catches regressions >0.01 logit difference).
+- CI regression gate baseline starts at 0.0 for all metrics; will be meaningful only after first training run updates baseline.json.
+- ClassifierWorker requires a trained model directory to start; failing to provide one will crash at init time.
