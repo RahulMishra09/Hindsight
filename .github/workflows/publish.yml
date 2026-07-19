@@ -60,41 +60,43 @@ jobs:
   publish-model:
     name: Publish ONNX Model to Hugging Face Hub
     runs-on: ubuntu-latest
-    if: false  # Enable in Week 5
     steps:
       - uses: actions/checkout@v4
 
-      # - name: Install uv
-      #   uses: astral-sh/setup-uv@v5
-      #   with:
-      #     version: "latest"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
 
-      # - name: Set up Python
-      #   uses: actions/setup-python@v5
-      #   with:
-      #     python-version: "3.12"
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-      # - name: Install dependencies
-      #   run: uv sync
+      - name: Install dependencies
+        run: uv sync
 
-      # - name: Export model to ONNX int8
-      #   run: |
-      #     uv run python scripts/export_onnx.py \
-      #       --checkpoint models/deberta-v3-base-incidents \
-      #       --output models/deberta-v3-base-incidents-int8.onnx
+      - name: Export model to ONNX int8
+        env:
+          DATABASE_URL: "postgresql+asyncpg://hindsight:hindsight@localhost:5432/hindsight"
+        run: |
+          uv run python -m ml.export.onnx_export \
+            --model models/deberta-taxonomy/best \
+            --out models/deberta-taxonomy/onnx
 
-      # - name: Validate ONNX model
-      #   run: uv run python scripts/validate_onnx.py
-
-      # - name: Push model to Hugging Face Hub
-      #   env:
-      #     HF_TOKEN: ${{ secrets.HF_TOKEN }}
-      #     HF_MODEL_REPO: ${{ vars.HF_MODEL_REPO }}
-      #   run: |
-      #     uv run python scripts/push_model_to_hub.py \
-      #       --repo "$HF_MODEL_REPO" \
-      #       --onnx-path models/deberta-v3-base-incidents-int8.onnx \
-      #       --tag "${{ github.ref_name }}"
+      - name: Push model to Hugging Face Hub
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          DRY_RUN_FLAG=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
+            DRY_RUN_FLAG="--dry-run"
+          fi
+          uv run python scripts/push_model_to_hub.py \
+            --repo "${{ vars.HF_MODEL_REPO || 'RahuL0009/hindsight-taxonomy' }}" \
+            --model-dir models/deberta-taxonomy/onnx \
+            --tag "${{ github.ref_name || 'dev' }}" \
+            $DRY_RUN_FLAG
 
   create-release:
     name: Create GitHub Release
