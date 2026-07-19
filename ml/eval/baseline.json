@@ -1,0 +1,21 @@
+{
+  "micro_f1": 0.0,
+  "macro_f1": 0.0,
+  "per_label_f1": {
+    "config-change": 0.0,
+    "retry-storm": 0.0,
+    "cascading-failure": 0.0,
+    "dns": 0.0,
+    "certificate-expiry": 0.0,
+    "capacity-exhaustion": 0.0,
+    "bad-deploy": 0.0,
+    "dependency-failure": 0.0,
+    "network-partition": 0.0,
+    "database-failure": 0.0,
+    "thundering-herd": 0.0,
+    "monitoring-gap": 0.0,
+    "human-error": 0.0,
+    "data-corruption": 0.0,
+    "quota-limit": 0.0
+  }
+}
