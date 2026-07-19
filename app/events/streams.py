@@ -11,6 +11,7 @@ class Stream:
     DOC_FETCHED: Final = "hindsight:doc.fetched"
     DOC_PARSED: Final = "hindsight:doc.parsed"
     DOC_DEDUPED: Final = "hindsight:doc.deduped"
+    DOC_CLASSIFIED: Final = "hindsight:doc.classified"
 
 
 class Group:
@@ -18,6 +19,7 @@ class Group:
     CRAWLER: Final = "crawler-cg"
     PARSER: Final = "parser-cg"
     DEDUPER: Final = "deduper-cg"
+    CLASSIFIER: Final = "classifier-cg"
 
 
 def dlq_of(stream: str) -> str:

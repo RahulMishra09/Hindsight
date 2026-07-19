@@ -68,3 +68,13 @@ class DocDeduped(BaseEvent):
     content_hash: Annotated[str, Field()]
     is_duplicate: bool = False
     duplicate_of: str | None = None
+
+
+class DocClassified(BaseEvent):
+    event_type: Literal["doc.classified"] = "doc.classified"
+    version: Literal[1] = 1
+
+    document_id: str
+    incident_id: str
+    content_hash: Annotated[str, Field()]
+    labels: list[str] = Field(default_factory=list)
