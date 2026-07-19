@@ -1,0 +1,46 @@
+# Hindsight taxonomy classifier training configuration
+# All hyperparams in one place — override via CLI or env vars.
+
+model:
+  name: "microsoft/deberta-v3-base"
+  max_length: 512
+  num_labels: 15
+
+data:
+  silver_weight: 0.7
+  gold_weight: 1.0
+  val_fraction: 0.15
+  test_fraction: 0.15
+  min_positives_per_label: 5
+  seed: 42
+
+training:
+  batch_size: 16
+  eval_batch_size: 32
+  learning_rate: 2.0e-5
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  num_epochs: 10
+  early_stopping_patience: 3
+  fp16: true
+  gradient_accumulation_steps: 2
+  max_grad_norm: 1.0
+  seed: 42
+
+loss:
+  type: "bce_with_pos_weight"
+  pos_weight_cap: 10.0
+
+threshold:
+  method: "per_label_f1"
+  search_range: [0.1, 0.9]
+  search_steps: 81
+
+output:
+  dir: "models/deberta-taxonomy"
+  save_total_limit: 2
+
+tracker:
+  backend: "wandb"
+  project: "hindsight-taxonomy"
+  offline: true
