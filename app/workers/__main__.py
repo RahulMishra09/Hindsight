@@ -13,7 +13,7 @@ from app.core.settings import get_settings
 
 logger = get_logger(__name__)
 
-WORKER_TYPES = ("echo", "crawler", "parser", "deduper")
+WORKER_TYPES = ("echo", "crawler", "parser", "deduper", "classifier")
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -77,6 +77,21 @@ async def run() -> None:
             num_perm=settings.dedup_num_perm,
             band_size=settings.dedup_band_size,
             jaccard_threshold=settings.dedup_jaccard_threshold,
+            consumer_prefix=settings.redis_consumer_prefix,
+        )
+
+    elif args.worker == "classifier":
+        engine = create_engine(settings)
+        sm = create_sessionmaker(engine)
+        from pathlib import Path
+
+        from app.workers.classifier import ClassifierWorker
+
+        worker = ClassifierWorker(
+            redis_client,
+            sessionmaker=sm,
+            model_dir=Path(settings.classifier_model_dir),
+            max_length=settings.classifier_max_length,
             consumer_prefix=settings.redis_consumer_prefix,
         )
 

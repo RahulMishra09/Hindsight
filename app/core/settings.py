@@ -57,6 +57,10 @@ class Settings(BaseSettings):
     dedup_num_perm: int = 128
     dedup_band_size: int = 4
 
+    # -- Classifier --------------------------------------------------------
+    classifier_model_dir: str = "models/deberta-taxonomy/best"
+    classifier_max_length: int = 512
+
     # -- Observability -----------------------------------------------------
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     log_format: Literal["json", "text"] = "text"
