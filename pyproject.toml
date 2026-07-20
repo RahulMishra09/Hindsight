@@ -183,6 +183,7 @@ source = ["app", "ml"]
 omit = ["*/tests/*", "alembic/*"]
 
 [tool.coverage.report]
+fail_under = 55
 exclude_lines = [
     "pragma: no cover",
     "if TYPE_CHECKING:",
