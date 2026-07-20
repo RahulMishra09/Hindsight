@@ -2,7 +2,7 @@
 
 Usage:
     uv run python -m ml.training.run
-    uv run python -m ml.training.run --config ml/training/config.yaml
+    uv run python -m ml.training.run --data-jsonl data/export/training.jsonl
 """
 
 from __future__ import annotations
@@ -95,11 +95,10 @@ def _load_from_jsonl(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train hindsight-taxonomy classifier")
-    parser.add_argument("--config", type=Path, default=None)
     parser.add_argument("--data-jsonl", type=Path, default=None)
     args = parser.parse_args()
 
-    cfg = load_config(args.config)
+    cfg = load_config()
 
     if args.data_jsonl and args.data_jsonl.exists():
         silver, gold, texts, orgs = _load_from_jsonl(args.data_jsonl)

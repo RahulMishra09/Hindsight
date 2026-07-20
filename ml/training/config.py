@@ -1,22 +1,22 @@
-"""Training configuration loader — reads YAML, validates, provides typed access."""
+"""Training configuration — pydantic-settings with env-var overrides."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from pathlib import Path
-
-import yaml
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-@dataclass(frozen=True)
-class ModelConfig:
+class ModelConfig(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="TRAIN_MODEL_", extra="ignore")
+
     name: str = "microsoft/deberta-v3-base"
     max_length: int = 512
     num_labels: int = 15
 
 
-@dataclass(frozen=True)
-class DataConfig:
+class DataConfig(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="TRAIN_DATA_", extra="ignore")
+
     silver_weight: float = 0.7
     gold_weight: float = 1.0
     val_fraction: float = 0.15
@@ -25,8 +25,9 @@ class DataConfig:
     seed: int = 42
 
 
-@dataclass(frozen=True)
-class TrainingConfig:
+class TrainingHyperConfig(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="TRAIN_", extra="ignore")
+
     batch_size: int = 16
     eval_batch_size: int = 32
     learning_rate: float = 2e-5
@@ -40,59 +41,47 @@ class TrainingConfig:
     seed: int = 42
 
 
-@dataclass(frozen=True)
-class LossConfig:
+class LossConfig(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="TRAIN_LOSS_", extra="ignore")
+
     type: str = "bce_with_pos_weight"
     pos_weight_cap: float = 10.0
 
 
-@dataclass(frozen=True)
-class ThresholdConfig:
+class ThresholdConfig(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="TRAIN_THRESHOLD_", extra="ignore")
+
     method: str = "per_label_f1"
-    search_range: list[float] = field(default_factory=lambda: [0.1, 0.9])
+    search_range: list[float] = Field(default_factory=lambda: [0.1, 0.9])
     search_steps: int = 81
 
 
-@dataclass(frozen=True)
-class OutputConfig:
+class OutputConfig(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="TRAIN_OUTPUT_", extra="ignore")
+
     dir: str = "models/deberta-taxonomy"
     save_total_limit: int = 2
 
 
-@dataclass(frozen=True)
-class TrackerConfig:
+class TrackerConfig(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="TRAIN_TRACKER_", extra="ignore")
+
     backend: str = "wandb"
     project: str = "hindsight-taxonomy"
     offline: bool = True
 
 
-@dataclass(frozen=True)
-class TrainPipelineConfig:
-    model: ModelConfig = field(default_factory=ModelConfig)
-    data: DataConfig = field(default_factory=DataConfig)
-    training: TrainingConfig = field(default_factory=TrainingConfig)
-    loss: LossConfig = field(default_factory=LossConfig)
-    threshold: ThresholdConfig = field(default_factory=ThresholdConfig)
-    output: OutputConfig = field(default_factory=OutputConfig)
-    tracker: TrackerConfig = field(default_factory=TrackerConfig)
+class TrainPipelineConfig(BaseSettings):
+    model_config = SettingsConfigDict(extra="ignore")
+
+    model: ModelConfig = Field(default_factory=ModelConfig)
+    data: DataConfig = Field(default_factory=DataConfig)
+    training: TrainingHyperConfig = Field(default_factory=TrainingHyperConfig)
+    loss: LossConfig = Field(default_factory=LossConfig)
+    threshold: ThresholdConfig = Field(default_factory=ThresholdConfig)
+    output: OutputConfig = Field(default_factory=OutputConfig)
+    tracker: TrackerConfig = Field(default_factory=TrackerConfig)
 
 
-def load_config(path: Path | None = None) -> TrainPipelineConfig:
-    if path is None:
-        path = Path(__file__).parent / "config.yaml"
-    if not path.exists():
-        return TrainPipelineConfig()
-
-    raw = yaml.safe_load(path.read_text())
-    if not raw:
-        return TrainPipelineConfig()
-
-    return TrainPipelineConfig(
-        model=ModelConfig(**raw.get("model", {})),
-        data=DataConfig(**raw.get("data", {})),
-        training=TrainingConfig(**raw.get("training", {})),
-        loss=LossConfig(**raw.get("loss", {})),
-        threshold=ThresholdConfig(**raw.get("threshold", {})),
-        output=OutputConfig(**raw.get("output", {})),
-        tracker=TrackerConfig(**raw.get("tracker", {})),
-    )
+def load_config() -> TrainPipelineConfig:
+    return TrainPipelineConfig()

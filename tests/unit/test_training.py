@@ -22,29 +22,18 @@ class TestConfig:
         assert cfg.training.batch_size == 16
         assert cfg.data.seed == 42
 
-    def test_load_nonexistent_path(self, tmp_path):
-        cfg = load_config(tmp_path / "no_such_file.yaml")
+    def test_load_returns_pipeline_config(self):
+        cfg = load_config()
         assert isinstance(cfg, TrainPipelineConfig)
 
-    def test_load_yaml(self, tmp_path):
-        yaml_content = """
-model:
-  name: "test-model"
-  max_length: 256
-  num_labels: 15
-data:
-  seed: 99
-training:
-  batch_size: 8
-  num_epochs: 3
-"""
-        f = tmp_path / "test_config.yaml"
-        f.write_text(yaml_content)
-        cfg = load_config(f)
-        assert cfg.model.name == "test-model"
-        assert cfg.model.max_length == 256
-        assert cfg.data.seed == 99
-        assert cfg.training.batch_size == 8
+    def test_env_override(self, monkeypatch):
+        monkeypatch.setenv("TRAIN_MODEL_NAME", "test-model")
+        monkeypatch.setenv("TRAIN_MODEL_MAX_LENGTH", "256")
+        from ml.training.config import ModelConfig
+
+        mc = ModelConfig()
+        assert mc.name == "test-model"
+        assert mc.max_length == 256
 
 
 class TestMergeSilverGold:
