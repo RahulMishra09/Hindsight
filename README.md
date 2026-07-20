@@ -110,8 +110,8 @@ uv run python -m app.workers crawler
 # Run weak supervision to generate silver labels
 uv run python scripts/reconcile_labels.py
 
-# Train DeBERTa-v3-base
-uv run python -m ml.training.run --config ml/training/config.yaml
+# Train DeBERTa-v3-base (config via TRAIN_* env vars)
+uv run python -m ml.training.run
 
 # Export to ONNX int8
 uv run python -m ml.export.onnx_export \
@@ -137,7 +137,7 @@ uv run ruff format .
 # Type check
 uv run mypy .
 
-# Run tests (342 unit tests)
+# Run tests (358 unit tests)
 uv run pytest
 
 # Pre-commit on all files

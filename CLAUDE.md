@@ -125,7 +125,7 @@ pre-commit run --all-files
 | Reconcile script | `scripts/reconcile_labels.py` (Week 4) |
 | Annotation app | `app/annotation/app.py` (Week 4) |
 | Agreement metrics | `scripts/agreement.py` (Week 4) |
-| Training pipeline config | `ml/training/config.yaml` (Week 5) |
+| Training pipeline config | `ml/training/config.py` (Week 5, pydantic-settings) |
 | Training data/split | `ml/training/data.py` (Week 5) |
 | DeBERTa trainer | `ml/training/trainer.py` (Week 5) |
 | Threshold tuning | `ml/training/threshold.py` (Week 5) |
