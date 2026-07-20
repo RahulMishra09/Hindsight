@@ -40,13 +40,14 @@ def compute_label_metrics(
     fp = (y_pred * (1 - y_true)).sum(axis=0)
     fn = ((1 - y_pred) * y_true).sum(axis=0)
 
-    precision = np.where(tp + fp > 0, tp / (tp + fp), 0.0)
-    recall = np.where(tp + fn > 0, tp / (tp + fn), 0.0)
-    f1 = np.where(
-        precision + recall > 0,
-        2 * precision * recall / (precision + recall),
-        0.0,
-    )
+    with np.errstate(divide="ignore", invalid="ignore"):
+        precision = np.where(tp + fp > 0, tp / (tp + fp), 0.0)
+        recall = np.where(tp + fn > 0, tp / (tp + fn), 0.0)
+        f1 = np.where(
+            precision + recall > 0,
+            2 * precision * recall / (precision + recall),
+            0.0,
+        )
     support = y_true.sum(axis=0).astype(int)
 
     per_label = [
