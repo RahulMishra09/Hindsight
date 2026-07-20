@@ -77,8 +77,9 @@ frontend/out/
 *.pth
 *.safetensors
 
-# Raw data corpus (large — not versioned in git)
+# Raw data corpus and exports (large — not versioned in git)
 data/raw/
+data/export/
 
 # Weights & Biases
 wandb/
