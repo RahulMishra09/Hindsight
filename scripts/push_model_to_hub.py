@@ -93,6 +93,24 @@ outputs = session.run(None, dict(inputs))
 logits = outputs[0]
 ```
 
+## Results
+
+_Metrics populated automatically when training completes. See `ml/eval/baseline.json`._
+
+| Metric | Value |
+|--------|-------|
+| Micro-F1 | — |
+| Macro-F1 | — |
+
+<details>
+<summary>Per-label breakdown</summary>
+
+| Label | Precision | Recall | F1 | Support |
+|-------|-----------|--------|-----|---------|
+| _populated after training_ | | | | |
+
+</details>
+
 ## Limitations
 
 - Trained on English-language incident reports only
