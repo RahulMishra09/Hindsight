@@ -283,7 +283,7 @@ class TestClassifierWorkerHandle:
 
     async def test_classify_no_active_labels(self):
         classifier = FakeClassifier(active_labels=[])
-        probs, labels, active = classifier.classify_incident(
+        _probs, labels, active = classifier.classify_incident(
             title="Normal ops", summary=None, sections=None
         )
         assert active == []

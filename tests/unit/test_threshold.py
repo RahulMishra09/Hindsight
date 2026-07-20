@@ -83,7 +83,7 @@ class TestSaveThresholds:
     def test_save_and_load(self, tmp_path: Path):
         from ml.training.threshold import save_thresholds
 
-        thresholds = {label: 0.5 for label in TAXONOMY_LABELS}
+        thresholds = dict.fromkeys(TAXONOMY_LABELS, 0.5)
         thresholds["dns"] = 0.35
         thresholds["bad-deploy"] = 0.7
 
