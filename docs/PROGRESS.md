@@ -131,6 +131,10 @@ Each entry follows the same template. Fill every section; write "none" rather th
 
 ## Week 2 — 2026-07-13
 
+> **Note (added 2026-07-20 audit):** Weeks 2-5 originally stated "Carried Over: none."
+> This was inaccurate — integration tests were deferred at Week 1 and remained open
+> through Week 5. The entries below have been corrected to reflect reality.
+
 ### Shipped
 
 - **Document state machine** — `DocumentStatus` enum (`DISCOVERED → FETCHED → PARSED → DEDUPED|DUPLICATE → FAILED`) + `failed_stage` column. Alembic migration `0002_pipeline` adds `status`, `failed_stage`, `url` columns to `documents`, creates `minhash_signatures` table.
@@ -155,7 +159,7 @@ Each entry follows the same template. Fill every section; write "none" rather th
 
 ### Carried Over
 
-- none
+- Integration tests with testcontainers (deferred from Week 1)
 
 ### Metrics
 
@@ -198,7 +202,9 @@ Each entry follows the same template. Fill every section; write "none" rather th
 
 ### Carried Over
 
-- none
+- Integration tests with testcontainers (deferred since Week 1)
+- Workers import AsyncSession directly (arch rule 2 violation, flagged in Week 3 audit)
+- Coverage gate not enforced in CI (flagged in Week 3 audit)
 
 ### Metrics
 
@@ -238,7 +244,11 @@ Each entry follows the same template. Fill every section; write "none" rather th
 
 ### Carried Over
 
-- none
+- Integration tests with testcontainers (deferred since Week 1)
+- Workers import AsyncSession directly (arch rule 2 violation, flagged in Week 3 audit)
+- Coverage gate not enforced in CI (flagged in Week 3 audit)
+- SAD.md stale — still reflects Week 1 streams and data model (flagged in Week 3 audit)
+- .env.example missing crawler/dedup vars (flagged in Week 3 audit)
 
 ### Metrics
 
@@ -283,13 +293,17 @@ Each entry follows the same template. Fill every section; write "none" rather th
 
 ### Carried Over
 
-- none
+- Integration tests with testcontainers (deferred since Week 1)
+- Workers import AsyncSession directly (arch rule 2 violation, flagged in Week 3 audit)
+- SAD.md stale — still reflects Week 1 streams and data model (flagged in Week 3 audit)
+- baseline.json all zeros — regression gate is vacuous until first training run
+- Training never executed — no models/, thresholds.json, or golden set artifacts
 
 ### Metrics
 
 - Lines of application code added: ~1,700
 - Test count (unit / integration / e2e): 342 / 0 / 0
-- Coverage %: not enforced yet
+- Coverage %: 57% (first measurement; gate set to 55%)
 - Open issues closed: 0
 
 ### Risks
