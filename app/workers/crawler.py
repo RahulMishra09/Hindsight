@@ -8,8 +8,8 @@ import uuid
 
 import httpx
 import redis.asyncio as redis
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.core.db import SessionFactory
 from app.core.logging import get_logger
 from app.events.consumer import BaseWorker
 from app.events.publisher import Publisher
@@ -33,7 +33,7 @@ class CrawlerWorker(BaseWorker[DocDiscovered]):
         self,
         client: redis.Redis,
         *,
-        sessionmaker: async_sessionmaker[AsyncSession],
+        sessionmaker: SessionFactory,
         http_client: httpx.AsyncClient | None = None,
         robots_checker: RobotsChecker | None = None,
         politeness: PolitenessLimiter | None = None,

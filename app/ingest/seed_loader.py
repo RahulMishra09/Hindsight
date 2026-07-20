@@ -14,8 +14,8 @@ import re
 
 import httpx
 import redis.asyncio as redis
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.core.db import SessionFactory
 from app.core.logging import get_logger
 from app.events.publisher import Publisher
 from app.events.schemas import DocDiscovered
@@ -66,7 +66,7 @@ def _is_likely_postmortem_url(url: str) -> bool:
 
 
 async def load_seeds(
-    sessionmaker: async_sessionmaker[AsyncSession],
+    sessionmaker: SessionFactory,
     redis_client: redis.Redis,
 ) -> int:
     publisher = Publisher(redis_client)

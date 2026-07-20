@@ -9,8 +9,8 @@ import unicodedata
 import uuid
 
 import redis.asyncio as redis
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.core.db import SessionFactory
 from app.core.logging import get_logger
 from app.events.consumer import BaseWorker
 from app.events.publisher import Publisher
@@ -106,7 +106,7 @@ class ParserWorker(BaseWorker[DocFetched]):
         self,
         client: redis.Redis,
         *,
-        sessionmaker: async_sessionmaker[AsyncSession],
+        sessionmaker: SessionFactory,
         **kwargs: object,
     ) -> None:
         super().__init__(client, **kwargs)  # type: ignore[arg-type]

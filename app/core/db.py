@@ -18,6 +18,8 @@ from sqlalchemy.ext.asyncio import (
 
 from app.core.settings import Settings
 
+SessionFactory = async_sessionmaker[AsyncSession]
+
 
 def create_engine(settings: Settings) -> AsyncEngine:
     """Create an async SQLAlchemy engine from settings."""

@@ -7,8 +7,8 @@ from typing import ClassVar
 import uuid
 
 import redis.asyncio as redis
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.core.db import SessionFactory
 from app.core.logging import get_logger
 from app.events.consumer import BaseWorker
 from app.events.publisher import Publisher
@@ -62,7 +62,7 @@ class DeduperWorker(BaseWorker[DocParsed]):
         self,
         client: redis.Redis,
         *,
-        sessionmaker: async_sessionmaker[AsyncSession],
+        sessionmaker: SessionFactory,
         num_perm: int = 128,
         band_size: int = 4,
         jaccard_threshold: float = 0.85,

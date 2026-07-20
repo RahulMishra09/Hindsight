@@ -7,8 +7,8 @@ from typing import ClassVar
 import uuid
 
 import redis.asyncio as redis
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.core.db import SessionFactory
 from app.core.logging import get_logger
 from app.events.consumer import BaseWorker
 from app.events.publisher import Publisher
@@ -33,7 +33,7 @@ class ClassifierWorker(BaseWorker[DocDeduped]):
         self,
         client: redis.Redis,
         *,
-        sessionmaker: async_sessionmaker[AsyncSession],
+        sessionmaker: SessionFactory,
         model_dir: Path,
         max_length: int = 512,
         **kwargs: object,
